@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>燃費 CO2排出量 ドライブ試算</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<div class="max-w-2xl mx-auto p-4">
+  <h1 class="text-2xl font-bold text-gray-800 mb-6">燃費 CO2排出量 ドライブ試算</h1>
+
+  <!-- 入力フォーム -->
+  <div class="bg-white rounded-xl shadow-md p-5 mb-4">
+    <h2 class="text-sm font-semibold text-gray-500 uppercase mb-4">走行条件</h2>
+
+    <!-- 往復/片道 -->
+    <div class="flex gap-4 mb-4">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="radio" name="direction" value="one" id="dir-one" checked class="text-blue-600"
+          onchange="calculate()" aria-label="片道">
+        <span class="text-sm font-medium text-gray-700">片道</span>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="radio" name="direction" value="round" id="dir-round" class="text-blue-600"
+          onchange="calculate()" aria-label="往復">
+        <span class="text-sm font-medium text-gray-700">往復</span>
+      </label>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label for="distance" class="block text-sm font-medium text-gray-700 mb-1">走行距離 (km)</label>
+        <input type="number" id="distance" value="100" min="0" step="0.1"
+          class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+          oninput="calculate()" aria-label="走行距離">
+      </div>
+      <div>
+        <label for="fuel-economy" class="block text-sm font-medium text-gray-700 mb-1">燃費 (km/L)</label>
+        <input type="number" id="fuel-economy" value="15" min="0.1" step="0.1"
+          class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+          oninput="calculate()" aria-label="燃費">
+      </div>
+      <div>
+        <label for="gas-price" class="block text-sm font-medium text-gray-700 mb-1">ガソリン単価 (円/L)</label>
+        <input type="number" id="gas-price" value="175" min="1" step="1"
+          class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+          oninput="calculate()" aria-label="ガソリン単価">
+      </div>
+    </div>
+
+    <!-- 年間換算 -->
+    <div class="mt-4 pt-4 border-t border-gray-100">
+      <label for="annual-km" class="block text-sm font-medium text-gray-700 mb-1">年間走行距離 (km)  <span class="text-xs text-gray-400">※年間コスト計算用</span></label>
+      <input type="number" id="annual-km" value="10000" min="0" step="100"
+        class="w-full md:w-48 border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+        oninput="calculate()" aria-label="年間走行距離">
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="bg-white rounded-xl shadow-md p-5 mb-4">
+    <h2 class="text-sm font-semibold text-gray-500 uppercase mb-4">計算結果</h2>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div class="bg-blue-50 rounded-lg p-3">
+        <div class="text-xs text-blue-600 font-medium mb-1">燃料費</div>
+        <div id="res-cost" class="text-2xl font-bold text-blue-700">--</div>
+        <div class="text-xs text-blue-500">円</div>
+      </div>
+      <div class="bg-green-50 rounded-lg p-3">
+        <div class="text-xs text-green-600 font-medium mb-1">使用燃料</div>
+        <div id="res-fuel" class="text-2xl font-bold text-green-700">--</div>
+        <div class="text-xs text-green-500">リットル</div>
+      </div>
+      <div class="bg-orange-50 rounded-lg p-3">
+        <div class="text-xs text-orange-600 font-medium mb-1">CO2排出量</div>
+        <div id="res-co2" class="text-2xl font-bold text-orange-700">--</div>
+        <div class="text-xs text-orange-500">kg-CO2</div>
+      </div>
+      <div class="bg-purple-50 rounded-lg p-3">
+        <div class="text-xs text-purple-600 font-medium mb-1">年間燃料費</div>
+        <div id="res-annual-cost" class="text-2xl font-bold text-purple-700">--</div>
+        <div class="text-xs text-purple-500">円/年</div>
+      </div>
+      <div class="bg-red-50 rounded-lg p-3">
+        <div class="text-xs text-red-600 font-medium mb-1">年間CO2</div>
+        <div id="res-annual-co2" class="text-2xl font-bold text-red-700">--</div>
+        <div class="text-xs text-red-500">kg-CO2/年</div>
+      </div>
+      <div class="bg-emerald-50 rounded-lg p-3">
+        <div class="text-xs text-emerald-600 font-medium mb-1">CO2 = 木</div>
+        <div id="res-trees" class="text-2xl font-bold text-emerald-700">--</div>
+        <div class="text-xs text-emerald-500">本分/年 ≈ 1本=15kgCO2</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EV比較 -->
+  <div class="bg-white rounded-xl shadow-md p-5 mb-4">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase">EV比較</h2>
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" id="ev-toggle" onchange="toggleEV()" class="text-blue-600"
+          aria-label="EV比較を有効にする">
+        <span class="text-sm text-gray-600">EV比較を有効にする</span>
+      </label>
+    </div>
+    <div id="ev-inputs" class="hidden">
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="ev-efficiency" class="block text-sm font-medium text-gray-700 mb-1">電費 (km/kWh)</label>
+          <input type="number" id="ev-efficiency" value="6" min="0.1" step="0.1"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+            oninput="calculate()" aria-label="電費">
+        </div>
+        <div>
+          <label for="electricity-price" class="block text-sm font-medium text-gray-700 mb-1">電気代 (円/kWh)</label>
+          <input type="number" id="electricity-price" value="27" min="1" step="1"
+            class="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+            oninput="calculate()" aria-label="電気代">
+        </div>
+      </div>
+      <div id="ev-results" class="hidden">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-cyan-50 rounded-lg p-3">
+            <div class="text-xs text-cyan-600 font-medium mb-1">EV 燃料費（同距離）</div>
+            <div id="ev-cost" class="text-xl font-bold text-cyan-700">--</div>
+            <div class="text-xs text-cyan-500">円</div>
+          </div>
+          <div class="bg-teal-50 rounded-lg p-3">
+            <div class="text-xs text-teal-600 font-medium mb-1">年間削減額（EV対比）</div>
+            <div id="ev-save" class="text-xl font-bold text-teal-700">--</div>
+            <div class="text-xs text-teal-500">円/年</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="ev-placeholder" class="text-sm text-gray-400 text-center py-4">
+      上のトグルをONにするとEV比較が表示されます
+    </div>
+  </div>
+</div>
+
+<script>
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+const STORAGE_KEY = 'fuel_estimator_v1';
+
+function loadValues() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (d.distance) document.getElementById('distance').value = d.distance;
+    if (d.fuelEconomy) document.getElementById('fuel-economy').value = d.fuelEconomy;
+    if (d.gasPrice) document.getElementById('gas-price').value = d.gasPrice;
+    if (d.annualKm) document.getElementById('annual-km').value = d.annualKm;
+    if (d.direction) document.querySelector('input[name="direction"][value="' + d.direction + '"]').checked = true;
+    if (d.evOn) { document.getElementById('ev-toggle').checked = true; toggleEV(); }
+    if (d.evEff) document.getElementById('ev-efficiency').value = d.evEff;
+    if (d.elecPrice) document.getElementById('electricity-price').value = d.elecPrice;
+  } catch(e) {}
+}
+
+function saveValues() {
+  const d = {
+    distance: document.getElementById('distance').value,
+    fuelEconomy: document.getElementById('fuel-economy').value,
+    gasPrice: document.getElementById('gas-price').value,
+    annualKm: document.getElementById('annual-km').value,
+    direction: document.querySelector('input[name="direction"]:checked').value,
+    evOn: document.getElementById('ev-toggle').checked,
+    evEff: document.getElementById('ev-efficiency').value,
+    elecPrice: document.getElementById('electricity-price').value
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+}
+
+function toggleEV() {
+  const on = document.getElementById('ev-toggle').checked;
+  document.getElementById('ev-inputs').classList.toggle('hidden', !on);
+  document.getElementById('ev-placeholder').classList.toggle('hidden', on);
+  calculate();
+}
+
+function fmt(n, dec=0) {
+  return n.toLocaleString('ja-JP', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function calculate() {
+  const direction = document.querySelector('input[name="direction"]:checked').value;
+  const rawDist = parseFloat(document.getElementById('distance').value) || 0;
+  const distance = direction === 'round' ? rawDist * 2 : rawDist;
+  const fuelEconomy = parseFloat(document.getElementById('fuel-economy').value) || 1;
+  const gasPrice = parseFloat(document.getElementById('gas-price').value) || 0;
+  const annualKm = parseFloat(document.getElementById('annual-km').value) || 0;
+
+  const fuelUsed = distance / fuelEconomy;
+  const cost = fuelUsed * gasPrice;
+  const co2 = fuelUsed * 2.32;
+  const annualFuel = annualKm / fuelEconomy;
+  const annualCost = annualFuel * gasPrice;
+  const annualCo2 = annualFuel * 2.32;
+  const trees = Math.round(annualCo2 / 15 * 10) / 10;
+
+  document.getElementById('res-cost').textContent = fmt(cost);
+  document.getElementById('res-fuel').textContent = fmt(fuelUsed, 2);
+  document.getElementById('res-co2').textContent = fmt(co2, 2);
+  document.getElementById('res-annual-cost').textContent = fmt(annualCost);
+  document.getElementById('res-annual-co2').textContent = fmt(annualCo2, 1);
+  document.getElementById('res-trees').textContent = fmt(trees, 1);
+
+  if (document.getElementById('ev-toggle').checked) {
+    const evEff = parseFloat(document.getElementById('ev-efficiency').value) || 1;
+    const elecPrice = parseFloat(document.getElementById('electricity-price').value) || 0;
+    const evKwh = distance / evEff;
+    const evCost = evKwh * elecPrice;
+    const evAnnualCost = (annualKm / evEff) * elecPrice;
+    const saving = annualCost - evAnnualCost;
+    document.getElementById('ev-cost').textContent = fmt(evCost);
+    document.getElementById('ev-save').textContent = (saving >= 0 ? '+' : '') + fmt(saving);
+    document.getElementById('ev-results').classList.remove('hidden');
+  }
+
+  saveValues();
+}
+
+loadValues();
+calculate();
+</script>
+</body>
+</html>
